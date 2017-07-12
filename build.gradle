@@ -1,0 +1,98 @@
+buildscript {
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:1.5.1.RELEASE"
+        classpath 'info.solidsoft.gradle.pitest:gradle-pitest-plugin:1.1.11'
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.8.0"
+    }
+    repositories {
+        mavenCentral()
+    }
+}
+
+apply plugin: 'java'
+apply plugin: "info.solidsoft.pitest"
+apply plugin: 'maven'
+apply plugin: 'signing'
+apply plugin: 'io.codearte.nexus-staging'
+
+group = 'com.github.mlk'
+version = "1.0.${System.env.CIRCLE_BUILD_NUM}"
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    sign configurations.archives
+}
+
+
+dependencies {
+    compile 'org.springframework.boot:spring-boot-starter-web:1.5.3.RELEASE'
+
+    compileOnly 'org.projectlombok:lombok:1.16.16'
+
+    testCompile 'org.assertj:assertj-core:3.6.2'
+    testCompile 'org.mockito:mockito-all:1.8.4'
+    testCompile 'org.springframework.boot:spring-boot-starter-test:1.5.3.RELEASE'
+}
+
+uploadArchives {
+    if(project.hasProperty("ossrhUsername")) {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    name 'simples-migrations'
+                    packaging 'jar'
+                    description 'A wrapper around a wrapper around a wrapper around something that does sftp'
+                    url 'https://www.github.com/mlk/simples-migrations'
+
+                    scm {
+                        connection 'scm:git:https://www.github.com/mlk/simples-migrations/'
+                        url 'https://www.github.com/mlk/simples-migrations/'
+                    }
+
+                    licenses {
+                        license {
+                            name 'MIT License'
+                            url 'https://www.github.com/mlk/simples-migrations/LICENSE'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id 'mlk'
+                            name 'Michael Lee'
+                            email 'pom@michael-lloyd-lee.me.uk'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
